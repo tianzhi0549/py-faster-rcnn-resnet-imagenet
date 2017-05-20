@@ -12,7 +12,8 @@ from fast_rcnn.config import cfg
 import roi_data_layer.roidb as rdl_roidb
 from utils.timer import Timer
 import numpy as np
-import os
+import os, time
+from multiprocessing import Process, Manager
 
 from caffe.proto import caffe_pb2
 import google.protobuf as pb2
@@ -23,11 +24,11 @@ class SolverWrapper(object):
     use to unnormalize the learned bounding-box regression weights.
     """
 
-    def __init__(self, solver_prototxt, roidb, output_dir,
-                 pretrained_model=None):
+    def __init__(self, solver_prototxt, roidb, output_dir, 
+                nccl_uid, rank, pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.output_dir = output_dir
-
+        self.rank=rank
         if (cfg.TRAIN.HAS_RPN and cfg.TRAIN.BBOX_REG and
             cfg.TRAIN.BBOX_NORMALIZE_TARGETS):
             # RPN can only use precomputed normalization because there are no
@@ -41,10 +42,16 @@ class SolverWrapper(object):
             print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
+        
         if pretrained_model is not None:
             print ('Loading pretrained model '
                    'weights from {:s}').format(pretrained_model)
             self.solver.net.copy_from(pretrained_model)
+
+        nccl = caffe.NCCL(self.solver, nccl_uid)
+        nccl.bcast()
+        self.solver.add_callback(nccl)
+        self.nccl=nccl # hold the reference to nccl
 
         self.solver_param = caffe_pb2.SolverParameter()
         with open(solver_prototxt, 'rt') as f:
@@ -56,6 +63,7 @@ class SolverWrapper(object):
         """Take a snapshot of the network after unnormalizing the learned
         bounding-box regression weights. This enables easy use at test-time.
         """
+        assert self.rank==0
         net = self.solver.net
 
         scale_bbox_params = (cfg.TRAIN.BBOX_REG and
@@ -103,7 +111,7 @@ class SolverWrapper(object):
             if self.solver.iter % (10 * self.solver_param.display) == 0:
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
-            if self.solver.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+            if self.rank==0 and self.solver.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = self.solver.iter
                 model_paths.append(self.snapshot())
 
@@ -148,15 +156,35 @@ def filter_roidb(roidb):
                                                        num, num_after)
     return filtered_roidb
 
-def train_net(solver_prototxt, roidb, output_dir,
-              pretrained_model=None, max_iters=40000):
-    """Train a Fast R-CNN network."""
-
+def train_net_multi_gpus(solver_prototxt, roidb, output_dir,
+              gpus, pretrained_model=None, max_iters=40000):
     roidb = filter_roidb(roidb)
-    sw = SolverWrapper(solver_prototxt, roidb, output_dir,
-                       pretrained_model=pretrained_model)
-
+    nccl_uid = caffe.NCCL.new_uid()
     print 'Solving...'
-    model_paths = sw.train_model(max_iters)
+    return_list = Manager().list()
+    procs=[]
+    for rank in range(len(gpus)):
+        p = Process(target=train_net,
+                    args=(solver_prototxt, roidb, output_dir, 
+                        nccl_uid, gpus, rank, return_list, 
+                        pretrained_model, max_iters))
+        p.daemon = True
+        p.start()
+        procs.append(p)
+    for p in procs:
+        p.join()
     print 'done solving'
-    return model_paths
+    return return_list[0] # return the result of root_solver
+
+def train_net(solver_prototxt, roidb, output_dir, nccl_uid, gpus, rank,
+              return_list, pretrained_model=None, max_iters=40000):
+    """Train a Fast R-CNN network."""
+    caffe.set_mode_gpu()
+    caffe.set_device(gpus[rank])
+    caffe.set_solver_count(len(gpus))
+    caffe.set_solver_rank(rank)
+    caffe.set_multiprocess(True)
+    sw = SolverWrapper(solver_prototxt, roidb, output_dir, nccl_uid, 
+        rank, pretrained_model=pretrained_model)
+    model_paths = sw.train_model(max_iters)
+    return_list.append(model_paths)
