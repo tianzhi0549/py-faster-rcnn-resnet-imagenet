@@ -5,4 +5,6 @@ lib/pycocotools/_mask.c
 lib/pycocotools/_mask.so
 output/
 *.caffemodel
+caffe-fast-rcnn_original/
+data/ImageNet2015
 

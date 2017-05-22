@@ -10,6 +10,7 @@
 __sets = {}
 
 from datasets.pascal_voc import pascal_voc
+from datasets.imagenet import imagenet
 from datasets.coco import coco
 import numpy as np
 
@@ -30,6 +31,11 @@ for year in ['2015']:
     for split in ['test', 'test-dev']:
         name = 'coco_{}_{}'.format(year, split)
         __sets[name] = (lambda split=split, year=year: coco(split, year))
+
+for year in ['2015']:
+    for split in ['train', 'val', "trainval1_woextra", 'val1', 'val2']:
+        name = 'imagenet_{}_{}'.format(year, split)
+        __sets[name] = (lambda split=split: imagenet(split, year))
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""

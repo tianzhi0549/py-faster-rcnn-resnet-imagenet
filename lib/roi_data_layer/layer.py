@@ -42,11 +42,12 @@ class RoIDataLayer(caffe.Layer):
 
     def _get_next_minibatch_inds(self):
         """Return the roidb indices for the next minibatch."""
-        if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
+        if self._cur + cfg.TRAIN.IMS_PER_BATCH * (caffe.solver_rank() + 1) >= len(self._roidb):
             self._shuffle_roidb_inds()
 
-        db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
-        self._cur += cfg.TRAIN.IMS_PER_BATCH
+        db_inds = self._perm[self._cur + caffe.solver_rank() * cfg.TRAIN.IMS_PER_BATCH:
+            self._cur + cfg.TRAIN.IMS_PER_BATCH * (caffe.solver_rank() + 1)]
+        self._cur += cfg.TRAIN.IMS_PER_BATCH * caffe.solver_count()
         return db_inds
 
     def _get_next_minibatch(self):
@@ -180,11 +181,12 @@ class BlobFetcher(Process):
     def _get_next_minibatch_inds(self):
         """Return the roidb indices for the next minibatch."""
         # TODO(rbg): remove duplicated code
-        if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
+        if self._cur + cfg.TRAIN.IMS_PER_BATCH * (caffe.solver_rank() + 1) >= len(self._roidb):
             self._shuffle_roidb_inds()
 
-        db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
-        self._cur += cfg.TRAIN.IMS_PER_BATCH
+        db_inds = self._perm[self._cur + caffe.solver_rank() * cfg.TRAIN.IMS_PER_BATCH:
+            self._cur + cfg.TRAIN.IMS_PER_BATCH * (caffe.solver_rank() + 1)]
+        self._cur += cfg.TRAIN.IMS_PER_BATCH * caffe.solver_count()
         return db_inds
 
     def run(self):

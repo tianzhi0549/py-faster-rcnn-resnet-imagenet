@@ -76,7 +76,7 @@ def get_solvers(net_name):
                [net_name, n, 'stage2_fast_rcnn_solver30k40k.pt']]
     solvers = [os.path.join(cfg.MODELS_DIR, *s) for s in solvers]
     # Iterations for each training stage
-    max_iters = [80000, 40000, 80000, 40000]
+    max_iters = [320000, 320000, 320000, 320000]
     # max_iters = [100, 100, 100, 100]
     # Test prototxt for the RPN
     rpn_test_prototxt = os.path.join(
@@ -89,18 +89,6 @@ def get_solvers(net_name):
 # stage is executed in a separate process using multiprocessing.Process.
 # ------------------------------------------------------------------------------
 
-def _init_caffe(cfg):
-    """Initialize pycaffe in a training process.
-    """
-
-    import caffe
-    # fix the random seeds (numpy and caffe) for reproducibility
-    np.random.seed(cfg.RNG_SEED)
-    caffe.set_random_seed(cfg.RNG_SEED)
-    # set up caffe
-    caffe.set_mode_gpu()
-    caffe.set_device(cfg.GPU_ID)
-
 def train_rpn(gpus, queue=None, imdb_name=None, init_model=None, solver=None,
               max_iters=None, cfg=None):
     """Train a Region Proposal Network in a separate training process.
@@ -111,10 +99,10 @@ def train_rpn(gpus, queue=None, imdb_name=None, init_model=None, solver=None,
     cfg.TRAIN.BBOX_REG = False  # applies only to Fast R-CNN bbox regression
     cfg.TRAIN.PROPOSAL_METHOD = 'gt'
     cfg.TRAIN.IMS_PER_BATCH = 1
+    np.random.seed(cfg.RNG_SEED)
     print 'Init model: {}'.format(init_model)
     print('Using config:')
     pprint.pprint(cfg)
-
     roidb, imdb = get_roidb(imdb_name)
     print 'roidb len: {}'.format(len(roidb))
     output_dir = get_output_dir(imdb)
@@ -142,7 +130,11 @@ def rpn_generate(queue=None, imdb_name=None, rpn_model_path=None, cfg=None,
     pprint.pprint(cfg)
 
     import caffe
-    _init_caffe(cfg)
+    np.random.seed(cfg.RNG_SEED)
+    caffe.set_random_seed(cfg.RNG_SEED)
+    # set up caffe
+    caffe.set_mode_gpu()
+    caffe.set_device(cfg.GPU_ID)
 
     # NOTE: the matlab implementation computes proposals on flipped images, too.
     # We compute them on the image once and then flip the already computed
@@ -174,6 +166,7 @@ def train_fast_rcnn(gpus, queue=None, imdb_name=None, init_model=None, solver=No
     cfg.TRAIN.HAS_RPN = False           # not generating prosals on-the-fly
     cfg.TRAIN.PROPOSAL_METHOD = 'rpn'   # use pre-computed RPN proposals instead
     cfg.TRAIN.IMS_PER_BATCH = 1
+    np.random.seed(cfg.RNG_SEED)
     print 'Init model: {}'.format(init_model)
     print 'RPN proposals: {}'.format(rpn_file)
     print('Using config:')

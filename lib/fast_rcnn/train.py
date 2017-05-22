@@ -13,7 +13,7 @@ import roi_data_layer.roidb as rdl_roidb
 from utils.timer import Timer
 import numpy as np
 import os, time
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Queue
 
 from caffe.proto import caffe_pb2
 import google.protobuf as pb2
@@ -161,12 +161,12 @@ def train_net_multi_gpus(solver_prototxt, roidb, output_dir,
     roidb = filter_roidb(roidb)
     nccl_uid = caffe.NCCL.new_uid()
     print 'Solving...'
-    return_list = Manager().list()
+    mp_queue = Queue()
     procs=[]
     for rank in range(len(gpus)):
         p = Process(target=train_net,
                     args=(solver_prototxt, roidb, output_dir, 
-                        nccl_uid, gpus, rank, return_list, 
+                        nccl_uid, gpus, rank, mp_queue, 
                         pretrained_model, max_iters))
         p.daemon = True
         p.start()
@@ -174,17 +174,19 @@ def train_net_multi_gpus(solver_prototxt, roidb, output_dir,
     for p in procs:
         p.join()
     print 'done solving'
-    return return_list[0] # return the result of root_solver
+    return mp_queue.get() # return the result of root_solver (rank==0)
 
 def train_net(solver_prototxt, roidb, output_dir, nccl_uid, gpus, rank,
-              return_list, pretrained_model=None, max_iters=40000):
+              queue, pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
     caffe.set_mode_gpu()
     caffe.set_device(gpus[rank])
     caffe.set_solver_count(len(gpus))
     caffe.set_solver_rank(rank)
     caffe.set_multiprocess(True)
+    caffe.set_random_seed(cfg.RNG_SEED)
     sw = SolverWrapper(solver_prototxt, roidb, output_dir, nccl_uid, 
         rank, pretrained_model=pretrained_model)
     model_paths = sw.train_model(max_iters)
-    return_list.append(model_paths)
+    if rank==0:
+        queue.put(model_paths)
