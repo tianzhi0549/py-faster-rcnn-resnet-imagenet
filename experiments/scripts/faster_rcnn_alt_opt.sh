@@ -52,6 +52,7 @@ time ./tools/train_faster_rcnn_alt_opt.py --gpu ${GPU_ID} \
   --net_name ${NET} \
   --weights data/imagenet_models/${NET}.caffemodel \
   --imdb ${TRAIN_IMDB} \
+  --models_dir models/$PT_DIR \
   --cfg experiments/cfgs/faster_rcnn_alt_opt.yml \
   ${EXTRA_ARGS}
 

@@ -39,6 +39,8 @@ def parse_args():
     parser.add_argument('--weights', dest='pretrained_model',
                         help='initialize with pretrained model weights',
                         default=None, type=str)
+    parser.add_argument('--models_dir', dest='models_dir',
+                        default=None, type=str)
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
                         default=None, type=str)
@@ -201,7 +203,7 @@ if __name__ == '__main__':
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
     cfg.GPU_ID = args.gpu[0]
-
+    cfg.MODELS_DIR=args.models_dir
     # --------------------------------------------------------------------------
     # Pycaffe doesn't reliably free GPU memory when instantiated nets are
     # discarded (e.g. "del net" in Python code). To work around this issue, each
@@ -213,7 +215,6 @@ if __name__ == '__main__':
     mp_queue = mp.Queue()
     # solves, iters, etc. for each training stage
     solvers, max_iters, rpn_test_prototxt = get_solvers(args.net_name)
-
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 1 RPN, init from ImageNet model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
