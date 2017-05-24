@@ -9,7 +9,8 @@ from fast_rcnn.config import cfg
 from utils.blob import im_list_to_blob
 from utils.timer import Timer
 import numpy as np
-import cv2
+import cv2, cPickle
+import os.path as osp
 
 def _vis_proposals(im, dets, thresh=0.5):
     """Draw detected bounding boxes."""
@@ -96,23 +97,21 @@ def im_proposals(net, im):
     scores = blobs_out['scores'].copy()
     return boxes, scores
 
-def imdb_proposals(net, imdb, rank, count):
+def imdb_proposals(net, imdb, rank, count, output_dir):
     """Generate RPN proposals on all images in an imdb."""
 
     _t = Timer()
-    imdb_boxes = [[] for _ in xrange(rank, imdb.num_images, count)]
-    i_imdb = 0
     for i in xrange(rank, imdb.num_images, count): # imdb.num_images
         im = cv2.imread(imdb.image_path_at(i))
         _t.tic()
-        imdb_boxes[i_imdb], scores = im_proposals(net, im)
+        imdb_boxes, scores = im_proposals(net, im)
+        with open(osp.join(output_dir, "{}.pkl".format(i)), "wb") as fp:
+            cPickle.dump(imdb_boxes, fp, cPickle.HIGHEST_PROTOCOL)
         _t.toc()
         print 'im_proposals: {:d}/{:d} {:.3f}s' \
               .format(i + 1, imdb.num_images, _t.average_time)
         if 0:
-            dets = np.hstack((imdb_boxes[i_imdb], scores))
+            dets = np.hstack((imdb_boxes, scores))
             # from IPython import embed; embed()
             _vis_proposals(im, dets[:3, :], thresh=0.9)
             plt.show()
-        i_imdb += 1
-    return imdb_boxes

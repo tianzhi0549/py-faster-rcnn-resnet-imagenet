@@ -159,12 +159,16 @@ class imagenet(imdb):
         return roidb
 
     def _load_rpn_roidb(self, gt_roidb):
-        filename = self.config['rpn_file']
-        print 'loading {}'.format(filename)
-        assert os.path.exists(filename), \
-               'rpn data not found at: {}'.format(filename)
-        with open(filename, 'rb') as f:
-            box_list = cPickle.load(f)
+        rpn_dir = self.config['rpn_file']
+        print 'loading {}'.format(rpn_dir)
+        assert os.path.exists(rpn_dir), \
+               'rpn data not found at: {}'.format(rpn_dir)
+        filenames = os.listdir(rpn_dir)
+        box_list = [[] for _ in xrange(len(filenames))]
+        for fn in filenames:
+            i = int(fn.split(".")[0])
+            with open(os.path.join(rpn_dir, fn), "rb") as fp:
+                box_list[i] = cPickle.load(fp)
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_selective_search_roidb(self, gt_roidb):

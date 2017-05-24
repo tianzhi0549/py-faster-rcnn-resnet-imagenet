@@ -141,8 +141,7 @@ def rpn_generate(gpus, queue=None, imdb_name=None, rpn_model_path=None, cfg=None
         rpn_net = caffe.Net(rpn_test_prototxt, rpn_model_path, caffe.TEST)
         
         # Generate proposals on the imdb
-        rpn_proposals = imdb_proposals(rpn_net, imdb, rank, len(gpus))
-        mp_dict[rank]=rpn_proposals
+        rpn_proposals = imdb_proposals(rpn_net, imdb, rank, len(gpus), output_dir)
 
 
     cfg.TEST.RPN_PRE_NMS_TOP_N = -1     # no pre NMS filtering
@@ -150,14 +149,16 @@ def rpn_generate(gpus, queue=None, imdb_name=None, rpn_model_path=None, cfg=None
     
     print 'RPN model: {}'.format(rpn_model_path)
     imdb = get_imdb(imdb_name)
-    output_dir = get_output_dir(imdb)
+    
+    output_dir = os.path.join(get_output_dir(imdb), "proposals")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     print 'Output will be saved to `{:s}`'.format(output_dir)
     # NOTE: the matlab implementation computes proposals on flipped images, too.
         # We compute them on the image once and then flip the already computed
         # proposals. This might cause a minor loss in mAP (less proposal jittering).
     print 'Loaded dataset `{:s}` for proposal generation'.format(imdb.name)
     
-    mp_dict = mp.Manager().dict()
     procs=[]
     for rank in range(len(gpus)):
         p = mp.Process(target=rpn_generate_signle_gpu,
@@ -167,26 +168,7 @@ def rpn_generate(gpus, queue=None, imdb_name=None, rpn_model_path=None, cfg=None
         procs.append(p)
     for p in procs:
         p.join()
-    
-    # Merge proposals from different gpus
-    total_num = 0
-    rpn_proposals = [[] for _ in range(imdb.num_images)]
-    for rank, rpn_proposals_single_gpu in mp_dict.items():
-        print "Merging proposals from rank {} ...".format(rank)
-        total_num += len(rpn_proposals_single_gpu)
-        for i in range(len(rpn_proposals_single_gpu)):
-            rpn_proposals[rank + i * len(gpus)] = rpn_proposals_single_gpu[i]
-    assert total_num == imdb.num_images
-    
-    # Write proposals to disk and send the proposal file path through the
-    # multiprocessing queue
-    rpn_net_name = os.path.splitext(os.path.basename(rpn_model_path))[0]
-    rpn_proposals_path = os.path.join(
-        output_dir, rpn_net_name + '_proposals.pkl')
-    with open(rpn_proposals_path, 'wb') as f:
-        cPickle.dump(rpn_proposals, f, cPickle.HIGHEST_PROTOCOL)
-    print 'Wrote RPN proposals to {}'.format(rpn_proposals_path)
-    queue.put({'proposal_path': rpn_proposals_path})
+    queue.put({'proposal_path': output_dir})
 
 def train_fast_rcnn(gpus, queue=None, imdb_name=None, init_model=None, solver=None,
                     max_iters=None, cfg=None, rpn_file=None):
