@@ -120,36 +120,64 @@ def train_rpn(gpus, queue=None, imdb_name=None, init_model=None, solver=None,
     # Send final model path through the multiprocessing queue
     queue.put({'model_path': rpn_model_path})
 
-def rpn_generate(queue=None, imdb_name=None, rpn_model_path=None, cfg=None,
+def rpn_generate(gpus, queue=None, imdb_name=None, rpn_model_path=None, cfg=None,
                  rpn_test_prototxt=None):
     """Use a trained RPN to generate proposals.
     """
+    def rpn_generate_signle_gpu(rank):
+        cfg.GPU_ID=gpus[rank]
+        
+        print('Using config:')
+        pprint.pprint(cfg)
+
+        import caffe
+        np.random.seed(cfg.RNG_SEED)
+        caffe.set_random_seed(cfg.RNG_SEED)
+        # set up caffe
+        caffe.set_mode_gpu()
+        caffe.set_device(cfg.GPU_ID)
+
+        # Load RPN and configure output directory
+        rpn_net = caffe.Net(rpn_test_prototxt, rpn_model_path, caffe.TEST)
+        
+        # Generate proposals on the imdb
+        rpn_proposals = imdb_proposals(rpn_net, imdb, rank, len(gpus))
+        mp_dict[rank]=rpn_proposals
+
 
     cfg.TEST.RPN_PRE_NMS_TOP_N = -1     # no pre NMS filtering
     cfg.TEST.RPN_POST_NMS_TOP_N = 2000  # limit top boxes after NMS
+    
     print 'RPN model: {}'.format(rpn_model_path)
-    print('Using config:')
-    pprint.pprint(cfg)
-
-    import caffe
-    np.random.seed(cfg.RNG_SEED)
-    caffe.set_random_seed(cfg.RNG_SEED)
-    # set up caffe
-    caffe.set_mode_gpu()
-    caffe.set_device(cfg.GPU_ID)
-
-    # NOTE: the matlab implementation computes proposals on flipped images, too.
-    # We compute them on the image once and then flip the already computed
-    # proposals. This might cause a minor loss in mAP (less proposal jittering).
     imdb = get_imdb(imdb_name)
-    print 'Loaded dataset `{:s}` for proposal generation'.format(imdb.name)
-
-    # Load RPN and configure output directory
-    rpn_net = caffe.Net(rpn_test_prototxt, rpn_model_path, caffe.TEST)
     output_dir = get_output_dir(imdb)
     print 'Output will be saved to `{:s}`'.format(output_dir)
-    # Generate proposals on the imdb
-    rpn_proposals = imdb_proposals(rpn_net, imdb)
+    # NOTE: the matlab implementation computes proposals on flipped images, too.
+        # We compute them on the image once and then flip the already computed
+        # proposals. This might cause a minor loss in mAP (less proposal jittering).
+    print 'Loaded dataset `{:s}` for proposal generation'.format(imdb.name)
+    
+    mp_dict = mp.Manager().dict()
+    procs=[]
+    for rank in range(len(gpus)):
+        p = mp.Process(target=rpn_generate_signle_gpu,
+                    args=(rank, ))
+        p.daemon = True
+        p.start()
+        procs.append(p)
+    for p in procs:
+        p.join()
+    
+    # Merge proposals from different gpus
+    total_num = 0
+    rpn_proposals = [[] for _ in range(imdb.num_images)]
+    for rank, rpn_proposals_single_gpu in mp_dict.items():
+        print "Merging proposals from rank {} ...".format(rank)
+        total_num += len(rpn_proposals_single_gpu)
+        for i in range(len(rpn_proposals_single_gpu)):
+            rpn_proposals[rank + i * len(gpus)] = rpn_proposals_single_gpu[i]
+    assert total_num == imdb.num_images
+    
     # Write proposals to disk and send the proposal file path through the
     # multiprocessing queue
     rpn_net_name = os.path.splitext(os.path.basename(rpn_model_path))[0]
@@ -202,7 +230,6 @@ if __name__ == '__main__':
         cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
-    cfg.GPU_ID = args.gpu[0]
     cfg.MODELS_DIR=args.models_dir
     # --------------------------------------------------------------------------
     # Pycaffe doesn't reliably free GPU memory when instantiated nets are
@@ -215,31 +242,33 @@ if __name__ == '__main__':
     mp_queue = mp.Queue()
     # solves, iters, etc. for each training stage
     solvers, max_iters, rpn_test_prototxt = get_solvers(args.net_name)
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 1 RPN, init from ImageNet model'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 1 RPN, init from ImageNet model'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
-    mp_kwargs = dict(
-            gpus=args.gpu,
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            init_model=args.pretrained_model,
-            solver=solvers[0],
-            max_iters=max_iters[0],
-            cfg=cfg)
-    p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
-    p.start()
-    rpn_stage1_out = mp_queue.get()
-    p.join()
+    # cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
+    # mp_kwargs = dict(
+    #         gpus=args.gpu,
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         init_model=args.pretrained_model,
+    #         solver=solvers[0],
+    #         max_iters=max_iters[0],
+    #         cfg=cfg)
+    # p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
+    # p.start()
+    # rpn_stage1_out = mp_queue.get()
+    # p.join()
     
-    # rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/voc_2007_trainval/resnet-101_rpn_stage1_iter_80000.caffemodel"    
-    # rpn_stage1_out={'model_path': rpn_model_path}
+    # rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/voc_2007_trainval/resnet-101_rpn_stage1_iter_80000.caffemodel" 
+    rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_rpn_stage1_iter_320000.caffemodel" 
+    rpn_stage1_out={'model_path': rpn_model_path}
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 1 RPN, generate proposals'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
     mp_kwargs = dict(
+            gpus=args.gpu,
             queue=mp_queue,
             imdb_name=args.imdb_name,
             rpn_model_path=str(rpn_stage1_out['model_path']),
@@ -294,6 +323,7 @@ if __name__ == '__main__':
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
     mp_kwargs = dict(
+            gpus=args.gpu,
             queue=mp_queue,
             imdb_name=args.imdb_name,
             rpn_model_path=str(rpn_stage2_out['model_path']),
@@ -310,7 +340,7 @@ if __name__ == '__main__':
 
     cfg.TRAIN.SNAPSHOT_INFIX = 'stage2'
     mp_kwargs = dict(
-            args.gpu,
+            gpus=args.gpu,
             queue=mp_queue,
             imdb_name=args.imdb_name,
             init_model=str(rpn_stage2_out['model_path']),
