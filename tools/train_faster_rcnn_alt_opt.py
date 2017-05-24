@@ -245,24 +245,24 @@ if __name__ == '__main__':
     # rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/voc_2007_trainval/resnet-101_rpn_stage1_iter_80000.caffemodel" 
     rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_rpn_stage1_iter_320000.caffemodel" 
     rpn_stage1_out={'model_path': rpn_model_path}
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 1 RPN, generate proposals'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 1 RPN, generate proposals'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    mp_kwargs = dict(
-            gpus=args.gpu,
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            rpn_model_path=str(rpn_stage1_out['model_path']),
-            cfg=cfg,
-            rpn_test_prototxt=rpn_test_prototxt)
-    p = mp.Process(target=rpn_generate, kwargs=mp_kwargs)
-    p.start()
-    rpn_stage1_out['proposal_path'] = mp_queue.get()['proposal_path']
-    p.join()
+    # mp_kwargs = dict(
+    #         gpus=args.gpu,
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         rpn_model_path=str(rpn_stage1_out['model_path']),
+    #         cfg=cfg,
+    #         rpn_test_prototxt=rpn_test_prototxt)
+    # p = mp.Process(target=rpn_generate, kwargs=mp_kwargs)
+    # p.start()
+    # rpn_stage1_out['proposal_path'] = mp_queue.get()['proposal_path']
+    # p.join()
     
-    # proposal_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/voc_2007_trainval/resnet-101_rpn_stage1_iter_80000_proposals.pkl"
-    # rpn_stage1_out['proposal_path']=proposal_path
+    proposal_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/proposals"
+    rpn_stage1_out['proposal_path']=proposal_path
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 1 Fast R-CNN using RPN proposals, init from ImageNet model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
