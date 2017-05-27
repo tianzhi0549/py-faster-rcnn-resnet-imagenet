@@ -94,6 +94,8 @@ def add_bbox_regression_targets(roidb):
     if cfg.TRAIN.BBOX_NORMALIZE_TARGETS:
         print "Normalizing targets"
         for im_i in xrange(num_images):
+            if im_i % 1000 == 0:
+                print "Normalizing targets: {}/{}".format(im_i, num_images)
             targets = roidb[im_i]['bbox_targets']
             for cls in xrange(1, num_classes):
                 cls_inds = np.where(targets[:, 0] == cls)[0]

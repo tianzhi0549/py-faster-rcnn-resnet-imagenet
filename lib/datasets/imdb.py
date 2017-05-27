@@ -101,8 +101,11 @@ class imdb(object):
 
     def append_flipped_images(self):
         num_images = self.num_images
-        widths = self._get_widths()
+        widths = [0 for _ in xrange(num_images)]
         for i in xrange(num_images):
+            if i % 1000 == 0:
+                print "{}/{}".format(i, num_images)
+            widths[i]=PIL.Image.open(self.image_path_at(i)).size[0]
             boxes = self.roidb[i]['boxes'].copy()
             oldx1 = boxes[:, 0].copy()
             oldx2 = boxes[:, 2].copy()

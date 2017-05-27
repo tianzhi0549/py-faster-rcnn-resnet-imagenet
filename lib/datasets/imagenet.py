@@ -165,10 +165,14 @@ class imagenet(imdb):
                'rpn data not found at: {}'.format(rpn_dir)
         filenames = os.listdir(rpn_dir)
         box_list = [[] for _ in xrange(len(filenames))]
+        count = 0
         for fn in filenames:
             i = int(fn.split(".")[0])
             with open(os.path.join(rpn_dir, fn), "rb") as fp:
                 box_list[i] = cPickle.load(fp)
+            count += 1
+            if count % 1000 == 0:
+                print "{}/{}".format(count, len(filenames))
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_selective_search_roidb(self, gt_roidb):

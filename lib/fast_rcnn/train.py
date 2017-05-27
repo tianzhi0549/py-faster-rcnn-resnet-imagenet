@@ -25,21 +25,17 @@ class SolverWrapper(object):
     """
 
     def __init__(self, solver_prototxt, roidb, output_dir, 
-                nccl_uid, rank, pretrained_model=None):
+            nccl_uid, rank, bbox_means, bbox_stds, 
+            pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.output_dir = output_dir
-        self.rank=rank
+        self.rank = rank
+        self.bbox_means, self.bbox_stds = bbox_means, bbox_stds
         if (cfg.TRAIN.HAS_RPN and cfg.TRAIN.BBOX_REG and
             cfg.TRAIN.BBOX_NORMALIZE_TARGETS):
             # RPN can only use precomputed normalization because there are no
             # fixed statistics to compute a priori
             assert cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED
-
-        if cfg.TRAIN.BBOX_REG:
-            print 'Computing bounding-box regression targets...'
-            self.bbox_means, self.bbox_stds = \
-                    rdl_roidb.add_bbox_regression_targets(roidb)
-            print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
         
@@ -160,16 +156,22 @@ def filter_roidb(roidb):
     return filtered_roidb
 
 def train_net_multi_gpus(solver_prototxt, roidb, output_dir,
-              gpus, pretrained_model=None, max_iters=40000):
+        gpus, pretrained_model=None, max_iters=40000):
     roidb = filter_roidb(roidb)
     nccl_uid = caffe.NCCL.new_uid()
     print 'Solving...'
+    if cfg.TRAIN.BBOX_REG:
+        print 'Computing bounding-box regression targets...'
+        bbox_means, bbox_stds = \
+                rdl_roidb.add_bbox_regression_targets(roidb)
+        print 'done'
     mp_queue = Queue()
     procs=[]
     for rank in range(len(gpus)):
         p = Process(target=train_net,
                     args=(solver_prototxt, roidb, output_dir, 
                         nccl_uid, gpus, rank, mp_queue, 
+                        bbox_means, bbox_stds, 
                         pretrained_model, max_iters))
         p.daemon = True
         p.start()
@@ -180,7 +182,7 @@ def train_net_multi_gpus(solver_prototxt, roidb, output_dir,
     return mp_queue.get() # return the result of root_solver (rank==0)
 
 def train_net(solver_prototxt, roidb, output_dir, nccl_uid, gpus, rank,
-              queue, pretrained_model=None, max_iters=40000):
+        queue, bbox_means, bbox_stds, pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
     caffe.set_mode_gpu()
     caffe.set_device(gpus[rank])
@@ -189,7 +191,7 @@ def train_net(solver_prototxt, roidb, output_dir, nccl_uid, gpus, rank,
     caffe.set_multiprocess(True)
     caffe.set_random_seed(cfg.RNG_SEED)
     sw = SolverWrapper(solver_prototxt, roidb, output_dir, nccl_uid, 
-        rank, pretrained_model=pretrained_model)
+        rank, bbox_means, bbox_stds, pretrained_model=pretrained_model)
     model_paths = sw.train_model(max_iters)
     if rank==0:
         queue.put(model_paths)
