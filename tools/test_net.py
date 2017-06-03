@@ -23,8 +23,8 @@ def parse_args():
     Parse input arguments
     """
     parser = argparse.ArgumentParser(description='Test a Fast R-CNN network')
-    parser.add_argument('--gpu', dest='gpu_id', help='GPU id to use',
-                        default=0, type=int)
+    parser.add_argument('--gpu', dest='gpu_id', type=int, nargs='+', 
+                        default=[0], help="List of device ids.")
     parser.add_argument('--def', dest='prototxt',
                         help='prototxt file defining the network',
                         default=None, type=str)
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
 
-    cfg.GPU_ID = args.gpu_id
+    cfg.GPU_ID = args.gpu_id[0]
 
     print('Using config:')
     pprint.pprint(cfg)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         time.sleep(10)
 
     caffe.set_mode_gpu()
-    caffe.set_device(args.gpu_id)
+    caffe.set_device(cfg.GPU_ID)
     net = caffe.Net(args.prototxt, args.caffemodel, caffe.TEST)
     net.name = os.path.splitext(os.path.basename(args.caffemodel))[0]
 
