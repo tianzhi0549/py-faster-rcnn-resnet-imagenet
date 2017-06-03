@@ -25,12 +25,13 @@ class SolverWrapper(object):
     """
 
     def __init__(self, solver_prototxt, roidb, output_dir, 
-            nccl_uid, rank, bbox_means, bbox_stds, 
+            nccl_uid, rank, bbox_means=None, bbox_stds=None, 
             pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.output_dir = output_dir
         self.rank = rank
-        self.bbox_means, self.bbox_stds = bbox_means, bbox_stds
+        if cfg.TRAIN.BBOX_REG:
+            self.bbox_means, self.bbox_stds = bbox_means, bbox_stds
         if (cfg.TRAIN.HAS_RPN and cfg.TRAIN.BBOX_REG and
             cfg.TRAIN.BBOX_NORMALIZE_TARGETS):
             # RPN can only use precomputed normalization because there are no
@@ -107,11 +108,11 @@ class SolverWrapper(object):
             if self.solver.iter % (10 * self.solver_param.display) == 0:
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
-            if self.rank==0 and self.solver.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+            if self.rank == 0 and self.solver.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = self.solver.iter
                 model_paths.append(self.snapshot())
 
-        if last_snapshot_iter != self.solver.iter:
+        if self.rank == 0 and last_snapshot_iter != self.solver.iter:
             model_paths.append(self.snapshot())
         return model_paths
 
@@ -165,6 +166,8 @@ def train_net_multi_gpus(solver_prototxt, roidb, output_dir,
         bbox_means, bbox_stds = \
                 rdl_roidb.add_bbox_regression_targets(roidb)
         print 'done'
+    else:
+        bbox_means, bbox_stds = None, None
     mp_queue = Queue()
     procs=[]
     for rank in range(len(gpus)):

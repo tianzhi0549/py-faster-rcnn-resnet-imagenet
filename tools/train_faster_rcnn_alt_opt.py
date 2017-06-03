@@ -196,8 +196,8 @@ def train_fast_rcnn(gpus, queue=None, imdb_name=None, init_model=None, solver=No
           max_iters=max_iters)
 
     # Cleanup all but the final model
-    for i in model_paths[:-1]:
-        os.remove(i)
+    # for i in model_paths[:-1]:
+    #     os.remove(i)
     fast_rcnn_model_path = model_paths[-1]
     # Send Fast R-CNN model path over the multiprocessing queue
     queue.put({'model_path': fast_rcnn_model_path})
@@ -261,34 +261,36 @@ if __name__ == '__main__':
     # rpn_stage1_out['proposal_path'] = mp_queue.get()['proposal_path']
     # p.join()
     
-    proposal_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/proposals"
-    rpn_stage1_out['proposal_path']=proposal_path
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 1 Fast R-CNN using RPN proposals, init from ImageNet model'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # proposal_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/proposals"
+    # rpn_stage1_out['proposal_path']=proposal_path
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 1 Fast R-CNN using RPN proposals, init from ImageNet model'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
-    mp_kwargs = dict(
-            gpus=args.gpu,
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            init_model=args.pretrained_model,
-            solver=solvers[1],
-            max_iters=max_iters[1],
-            cfg=cfg,
-            rpn_file=rpn_stage1_out['proposal_path'])
-    p = mp.Process(target=train_fast_rcnn, kwargs=mp_kwargs)
-    p.start()
-    fast_rcnn_stage1_out = mp_queue.get()
-    p.join()
+    # cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
+    # mp_kwargs = dict(
+    #         gpus=args.gpu,
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         init_model=args.pretrained_model,
+    #         solver=solvers[1],
+    #         max_iters=max_iters[1],
+    #         cfg=cfg,
+    #         rpn_file=rpn_stage1_out['proposal_path'])
+    # p = mp.Process(target=train_fast_rcnn, kwargs=mp_kwargs)
+    # p.start()
+    # fast_rcnn_stage1_out = mp_queue.get()
+    # p.join()
 
+    fast_rcnn_stage1_out = {}
+    fast_rcnn_stage1_out["model_path"] = "/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_fast_rcnn_stage1_iter_320000.caffemodel"
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 2 RPN, init from stage 1 Fast R-CNN model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
     cfg.TRAIN.SNAPSHOT_INFIX = 'stage2'
     mp_kwargs = dict(
-            args.gpu,
+            gpus=args.gpu,
             queue=mp_queue,
             imdb_name=args.imdb_name,
             init_model=str(fast_rcnn_stage1_out['model_path']),
