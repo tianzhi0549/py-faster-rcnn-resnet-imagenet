@@ -203,6 +203,7 @@ class imdb(object):
         recalls = np.zeros_like(thresholds)
         # compute recall for each iou threshold
         for i, t in enumerate(thresholds):
+            assert num_pos != 0
             recalls[i] = (gt_overlaps >= t).sum() / float(num_pos)
         # ar = 2 * np.trapz(recalls, thresholds)
         ar = recalls.mean()
