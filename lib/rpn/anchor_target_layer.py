@@ -14,6 +14,8 @@ import numpy.random as npr
 from generate_anchors import generate_anchors
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.bbox_transform import bbox_transform
+import global_vars
+from other import get_dataset_split_name
 
 DEBUG = False
 
@@ -78,7 +80,7 @@ class AnchorTargetLayer(caffe.Layer):
         height, width = bottom[0].data.shape[-2:]
         # GT boxes (x1, y1, x2, y2, label)
         gt_boxes = bottom[1].data
-        assert gt_boxes.shape[0]!=0
+        assert gt_boxes.shape[0] != 0
         # im_info
         im_info = bottom[2].data[0, :]
 
@@ -153,9 +155,10 @@ class AnchorTargetLayer(caffe.Layer):
         if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels last so that negative labels can clobber positives
             labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
-
+        
         # subsample positive labels if we have too many
         num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
+
         fg_inds = np.where(labels == 1)[0]
         if len(fg_inds) > num_fg:
             disable_inds = npr.choice(
@@ -164,6 +167,17 @@ class AnchorTargetLayer(caffe.Layer):
 
         # subsample negative labels if we have too many
         num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+        
+        # When training over imagenet if the image comes from train, don't use it to generate negative anchors
+        if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+            assert len(global_vars.image_files) == 1
+            image_set = get_dataset_split_name(global_vars.image_files[0])
+            assert image_set == 'train' or image_set == 'val', image_set
+            if image_set == 'train':
+                num_fg = 0
+            elif image_set == 'val':
+                num_fg = cfg.TRAIN.RPN_BATCHSIZE * (1 - cfg.TRAIN.RPN_FG_FRACTION) * cfg.TRAIN.REAL_BATCH_SIZE
+
         bg_inds = np.where(labels == 0)[0]
         if len(bg_inds) > num_bg:
             disable_inds = npr.choice(

@@ -16,6 +16,8 @@ from roi_data_layer.minibatch import get_minibatch
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
+import global_vars
+from other import get_dataset_split_name
 
 class RoIDataLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
@@ -38,6 +40,28 @@ class RoIDataLayer(caffe.Layer):
             self._perm = inds
         else:
             self._perm = np.random.permutation(np.arange(len(self._roidb)))
+        
+        if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+            train_inds = []
+            val_inds = []
+            for index in self._perm:
+                split_name = get_dataset_split_name(self._roidb[index]["image"])
+                if split_name == 'train':
+                    train_inds.append(index)
+                elif split_name == 'val':
+                    val_inds.append(index)
+                else:
+                    assert False
+            train_index = 0
+            val_index = 0
+            for i in xrange(len(self._perm)):
+                if i % cfg.TRAIN.REAL_BATCH_SIZE == 0:
+                    self._perm[i] = val_inds[val_index % len(val_inds)]
+                    val_index += 1
+                else:
+                    self._perm[i] = train_inds[train_index % len(train_inds)]
+                    train_index += 1
+
         self._cur = 0
 
     def _get_next_minibatch_inds(self):

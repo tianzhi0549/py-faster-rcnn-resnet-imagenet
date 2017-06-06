@@ -25,6 +25,7 @@ import sys, os
 import multiprocessing as mp
 import cPickle
 import shutil
+import global_vars
 
 def parse_args():
     """
@@ -224,23 +225,24 @@ if __name__ == '__main__':
     mp_queue = mp.Queue()
     # solves, iters, etc. for each training stage
     solvers, max_iters, rpn_test_prototxt = get_solvers(args.net_name)
-    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    # print 'Stage 1 RPN, init from ImageNet model'
-    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    print 'Stage 1 RPN, init from ImageNet model'
+    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    # cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
-    # mp_kwargs = dict(
-    #         gpus=args.gpu,
-    #         queue=mp_queue,
-    #         imdb_name=args.imdb_name,
-    #         init_model=args.pretrained_model,
-    #         solver=solvers[0],
-    #         max_iters=max_iters[0],
-    #         cfg=cfg)
-    # p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
-    # p.start()
-    # rpn_stage1_out = mp_queue.get()
-    # p.join()
+    global_vars.imdb_name = args.imdb_name
+    cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
+    mp_kwargs = dict(
+            gpus=args.gpu,
+            queue=mp_queue,
+            imdb_name=args.imdb_name,
+            init_model=args.pretrained_model,
+            solver=solvers[0],
+            max_iters=max_iters[0],
+            cfg=cfg)
+    p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
+    p.start()
+    rpn_stage1_out = mp_queue.get()
+    p.join()
     
     # rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/voc_2007_trainval/resnet-101_rpn_stage1_iter_80000.caffemodel" 
     rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_rpn_stage1_iter_320000.caffemodel" 
