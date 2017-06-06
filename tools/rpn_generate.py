@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     # RPN test settings
     cfg.TEST.RPN_PRE_NMS_TOP_N = -1
-    cfg.TEST.RPN_POST_NMS_TOP_N = 2000
+    cfg.TEST.RPN_POST_NMS_TOP_N = 300
 
     print('Using config:')
     pprint.pprint(cfg)
@@ -82,10 +82,7 @@ if __name__ == '__main__':
     net.name = os.path.splitext(os.path.basename(args.caffemodel))[0]
 
     imdb = get_imdb(args.imdb_name)
-    imdb_boxes = imdb_proposals(net, imdb)
-
-    output_dir = get_output_dir(imdb, net)
-    rpn_file = os.path.join(output_dir, net.name + '_rpn_proposals.pkl')
-    with open(rpn_file, 'wb') as f:
-        cPickle.dump(imdb_boxes, f, cPickle.HIGHEST_PROTOCOL)
-    print 'Wrote RPN proposals to {}'.format(rpn_file)
+    output_dir = os.path.join(get_output_dir(imdb, net), "proposals_test")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    imdb_boxes = imdb_proposals(net, imdb, 0, 1, output_dir)
