@@ -1,3 +1,5 @@
+# baseline
+# model dir: models_bp
 stage 2
 
 2000:
@@ -26,7 +28,9 @@ Recall@0.8: 0.346
 Recall@0.9: 0.044
 
 
-# Do not use negative samples of training set
+# DEL: Do not use negative samples of training set
+# one batch with 7 training images and 1 val image, fixed conv1-3x
+# model dir: models_bp2
 stage 1
 2000:
 AverageRec: 0.574
@@ -43,3 +47,4 @@ Recall@0.6: 0.824
 Recall@0.7: 0.719
 Recall@0.8: 0.429
 Recall@0.9: 0.062
+
