@@ -19,6 +19,7 @@ layer {
   top: "conv1"
   name: "conv1"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 7
@@ -92,6 +93,7 @@ layer {
   top: "res2a_branch1"
   name: "res2a_branch1"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 256
     kernel_size: 1
@@ -146,6 +148,7 @@ layer {
   top: "res2a_branch2a"
   name: "res2a_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 1
@@ -207,6 +210,7 @@ layer {
   top: "res2a_branch2b"
   name: "res2a_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 3
@@ -268,6 +272,7 @@ layer {
   top: "res2a_branch2c"
   name: "res2a_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 256
     kernel_size: 1
@@ -337,6 +342,7 @@ layer {
   top: "res2b_branch2a"
   name: "res2b_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 1
@@ -398,6 +404,7 @@ layer {
   top: "res2b_branch2b"
   name: "res2b_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 3
@@ -459,6 +466,7 @@ layer {
   top: "res2b_branch2c"
   name: "res2b_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 256
     kernel_size: 1
@@ -528,6 +536,7 @@ layer {
   top: "res2c_branch2a"
   name: "res2c_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 1
@@ -589,6 +598,7 @@ layer {
   top: "res2c_branch2b"
   name: "res2c_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 64
     kernel_size: 3
@@ -650,6 +660,7 @@ layer {
   top: "res2c_branch2c"
   name: "res2c_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 256
     kernel_size: 1
@@ -719,6 +730,7 @@ layer {
   top: "res3a_branch1"
   name: "res3a_branch1"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 512
     kernel_size: 1
@@ -773,6 +785,7 @@ layer {
   top: "res3a_branch2a"
   name: "res3a_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 1
@@ -834,6 +847,7 @@ layer {
   top: "res3a_branch2b"
   name: "res3a_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 3
@@ -895,6 +909,7 @@ layer {
   top: "res3a_branch2c"
   name: "res3a_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 512
     kernel_size: 1
@@ -964,6 +979,7 @@ layer {
   top: "res3b1_branch2a"
   name: "res3b1_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 1
@@ -1025,6 +1041,7 @@ layer {
   top: "res3b1_branch2b"
   name: "res3b1_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 3
@@ -1086,6 +1103,7 @@ layer {
   top: "res3b1_branch2c"
   name: "res3b1_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 512
     kernel_size: 1
@@ -1155,6 +1173,7 @@ layer {
   top: "res3b2_branch2a"
   name: "res3b2_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 1
@@ -1216,6 +1235,7 @@ layer {
   top: "res3b2_branch2b"
   name: "res3b2_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 3
@@ -1277,6 +1297,7 @@ layer {
   top: "res3b2_branch2c"
   name: "res3b2_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 512
     kernel_size: 1
@@ -1346,6 +1367,7 @@ layer {
   top: "res3b3_branch2a"
   name: "res3b3_branch2a"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 1
@@ -1407,6 +1429,7 @@ layer {
   top: "res3b3_branch2b"
   name: "res3b3_branch2b"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 128
     kernel_size: 3
@@ -1468,6 +1491,7 @@ layer {
   top: "res3b3_branch2c"
   name: "res3b3_branch2c"
   type: "Convolution"
+  param { lr_mult: 0 decay_mult: 0 }
   convolution_param {
     num_output: 512
     kernel_size: 1
