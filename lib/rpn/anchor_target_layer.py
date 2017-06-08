@@ -174,9 +174,9 @@ class AnchorTargetLayer(caffe.Layer):
             image_set = get_dataset_split_name(global_vars.image_files[0])
             assert image_set == 'train' or image_set == 'val', image_set
             if image_set == 'train':
-                num_fg = 0
+                num_bg = 0
             elif image_set == 'val':
-                num_fg = cfg.TRAIN.RPN_BATCHSIZE * (1 - cfg.TRAIN.RPN_FG_FRACTION) * cfg.TRAIN.REAL_BATCH_SIZE
+                num_bg = cfg.TRAIN.RPN_BATCHSIZE * (1 - cfg.TRAIN.RPN_FG_FRACTION) * cfg.TRAIN.REAL_BATCH_SIZE
 
         bg_inds = np.where(labels == 0)[0]
         if len(bg_inds) > num_bg:
