@@ -24,3 +24,22 @@ Recall@0.6: 0.745
 Recall@0.7: 0.623
 Recall@0.8: 0.346
 Recall@0.9: 0.044
+
+
+# Do not use negative samples of training set
+stage 1
+2000:
+AverageRec: 0.574
+Recall@0.5: 0.926
+Recall@0.6: 0.881
+Recall@0.7: 0.777
+Recall@0.8: 0.458
+Recall@0.9: 0.064
+
+300:
+AverageRec: 0.537
+Recall@0.5: 0.877
+Recall@0.6: 0.824
+Recall@0.7: 0.719
+Recall@0.8: 0.429
+Recall@0.9: 0.062
