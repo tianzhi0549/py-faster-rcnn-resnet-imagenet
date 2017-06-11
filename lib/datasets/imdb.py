@@ -104,7 +104,7 @@ class imdb(object):
         widths = [0 for _ in xrange(num_images)]
         for i in xrange(num_images):
             if i % 1000 == 0:
-                print "{}/{}".format(i, num_images)
+                print "Append flipped images: {}/{}".format(i, num_images)
             widths[i]=PIL.Image.open(self.image_path_at(i)).size[0]
             boxes = self.roidb[i]['boxes'].copy()
             oldx1 = boxes[:, 0].copy()
@@ -215,6 +215,8 @@ class imdb(object):
                 'Number of boxes must match number of ground-truth images'
         roidb = []
         for i in xrange(self.num_images):
+            if i % 1000 == 0:
+                print "Create roidb from box list: {}/{}".format(i, self.num_images)
             boxes = box_list[i]
             num_boxes = boxes.shape[0]
             overlaps = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
@@ -243,6 +245,8 @@ class imdb(object):
     def merge_roidbs(a, b):
         assert len(a) == len(b)
         for i in xrange(len(a)):
+            if i % 1000 == 0:
+                print "Merge roidbs: {}/{}".format(i, len(a))
             if len(a[i]['boxes']) != 0 and len(b[i]['boxes']) != 0:
                 a[i]['boxes'] = np.vstack((a[i]['boxes'], b[i]['boxes']))
                 a[i]['gt_classes'] = np.hstack((a[i]['gt_classes'],

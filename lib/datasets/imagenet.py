@@ -172,7 +172,7 @@ class imagenet(imdb):
                 box_list[i] = cPickle.load(fp)
             count += 1
             if count % 1000 == 0:
-                print "{}/{}".format(count, len(filenames))
+                print "Load rpn roidb: {}/{}".format(count, len(filenames))
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_selective_search_roidb(self, gt_roidb):
