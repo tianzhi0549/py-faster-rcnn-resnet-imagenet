@@ -90,8 +90,6 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     overlaps = roidb['max_overlaps']
     rois = roidb['boxes']
 
-    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
@@ -115,8 +113,11 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
         if image_set == 'train':
             bg_rois_per_this_image = 0 # Do use the neg samples on training set
         elif image_set == 'val':
-            bg_rois_per_this_image = min(bg_rois_per_this_image * cfg.TRAIN.REAL_BATCH_SIZE, bg_inds.size)
+            bg_rois_per_image = rois_per_image - fg_rois_per_image
+            bg_rois_per_this_image = min(bg_rois_per_image * cfg.TRAIN.REAL_BATCH_SIZE, bg_inds.size)
     else:
+        # Make sure we are using imagenet_2015_trainval1_woextra
+        assert False
         bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
         bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
             bg_inds.size)
