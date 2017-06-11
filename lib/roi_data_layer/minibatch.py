@@ -20,10 +20,10 @@ def get_minibatch(roidb, num_classes):
     # Sample random scales to use for each image in this batch
     random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
                                     size=num_images)
-    assert(cfg.TRAIN.BATCH_SIZE % num_images == 0), \
+    assert(cfg.TRAIN.BATCH_SIZE % cfg.TRAIN.REAL_BATCH_SIZE == 0), \
         'num_images ({}) must divide BATCH_SIZE ({})'. \
-        format(num_images, cfg.TRAIN.BATCH_SIZE)
-    rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
+        format(cfg.TRAIN.REAL_BATCH_SIZE, cfg.TRAIN.BATCH_SIZE)
+    rois_per_image = cfg.TRAIN.BATCH_SIZE / cfg.TRAIN.REAL_BATCH_SIZE
     fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Get the input image blob, formatted for caffe
@@ -90,6 +90,8 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     overlaps = roidb['max_overlaps']
     rois = roidb['boxes']
 
+    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
+
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
@@ -105,9 +107,20 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
                        (overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
-    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-    bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
-                                        bg_inds.size)
+
+    if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+        assert len(global_vars.image_files) == 1
+        image_set = get_dataset_split_name(global_vars.image_files[0])
+        assert image_set == 'train' or image_set == 'val', image_set
+        if image_set == 'train':
+            bg_rois_per_this_image = 0 # Do use the neg samples on training set
+        elif image_set == 'val':
+            bg_rois_per_this_image = min(bg_rois_per_this_image * cfg.TRAIN.REAL_BATCH_SIZE, bg_inds.size)
+    else:
+        bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
+        bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
+            bg_inds.size)
+
     # Sample foreground regions without replacement
     if bg_inds.size > 0:
         bg_inds = npr.choice(
