@@ -12,6 +12,10 @@ import numpy.random as npr
 from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
+import global_vars
+
+# Make sure the file is not used
+assert False
 
 DEBUG = False
 
@@ -170,8 +174,19 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
                        (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
-    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-    bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
+
+    if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+        assert len(global_vars.image_files) == 1
+        image_set = get_dataset_split_name(global_vars.image_files[0])
+        assert image_set == 'train' or image_set == 'val', image_set
+        if image_set == 'train':
+            bg_rois_per_this_image = 0 # Do use the neg samples on training set
+        elif image_set == 'val':
+            bg_rois_per_this_image = min(bg_rois_per_this_image * cfg.TRAIN.REAL_BATCH_SIZE, bg_inds.size)
+    else:
+        bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
+        bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
+
     # Sample background regions without replacement
     if bg_inds.size > 0:
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
