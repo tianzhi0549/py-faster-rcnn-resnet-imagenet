@@ -169,14 +169,14 @@ class AnchorTargetLayer(caffe.Layer):
         num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
         
         # When training over imagenet if the image comes from train, don't use it to generate negative anchors
-        if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
-            assert len(global_vars.image_files) == 1
-            image_set = get_dataset_split_name(global_vars.image_files[0])
-            assert image_set == 'train' or image_set == 'val', image_set
-            if image_set == 'train':
-                num_bg = 0
-            elif image_set == 'val':
-                num_bg = cfg.TRAIN.RPN_BATCHSIZE * (1 - cfg.TRAIN.RPN_FG_FRACTION) * cfg.TRAIN.REAL_BATCH_SIZE
+        # if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+        #     assert len(global_vars.image_files) == 1
+        #     image_set = get_dataset_split_name(global_vars.image_files[0])
+        #     assert image_set == 'train' or image_set == 'val', image_set
+        #     if image_set == 'train':
+        #         num_bg = 0
+        #     elif image_set == 'val':
+        #         num_bg = cfg.TRAIN.RPN_BATCHSIZE * (1 - cfg.TRAIN.RPN_FG_FRACTION) * cfg.TRAIN.REAL_BATCH_SIZE
 
         bg_inds = np.where(labels == 0)[0]
         if len(bg_inds) > num_bg:
