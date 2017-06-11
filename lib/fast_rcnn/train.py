@@ -41,7 +41,8 @@ class SolverWrapper(object):
         self.solver = caffe.SGDSolver(solver_prototxt)
         
         assert caffe.solver_count() * cfg.TRAIN.IMS_PER_BATCH * self.solver.param.iter_size == \
-            cfg.TRAIN.REAL_BATCH_SIZE
+            cfg.TRAIN.REAL_BATCH_SIZE, "{} vs {}". \
+            format(caffe.solver_count() * cfg.TRAIN.IMS_PER_BATCH * self.solver.param.iter_size, cfg.TRAIN.REAL_BATCH_SIZE)
 
         if pretrained_model is not None:
             print ('Loading pretrained model '
