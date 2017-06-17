@@ -1,0 +1,6 @@
+# RPN batch with val
+# Fast rcnn batch with val and do use negative samples over training set
+stage 1, fast rcnn 300 with rpn proposals:
+Mean AP = 0.4695
+
+
