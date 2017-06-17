@@ -24,6 +24,8 @@ def prepare_roidb(imdb):
              for i in xrange(imdb.num_images)]
     roidb = imdb.roidb
     for i in xrange(len(imdb.image_index)):
+        if i % 1000 == 0:
+            print "Prepare roidb: {}/{}".format(i, len(imdb.image_index))
         roidb[i]['image'] = imdb.image_path_at(i)
         roidb[i]['width'] = sizes[i][0]
         roidb[i]['height'] = sizes[i][1]
