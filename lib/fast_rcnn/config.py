@@ -45,6 +45,8 @@ __C.TRAIN.IMS_PER_BATCH = 2
 
 __C.TRAIN.REAL_BATCH_SIZE = 8
 
+__C.TRAIN.VAL_PER_BATCH_SIZE = 1
+
 # Minibatch size (number of regions of interest [ROIs])
 __C.TRAIN.BATCH_SIZE = 128
 

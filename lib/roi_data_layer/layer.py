@@ -55,7 +55,7 @@ class RoIDataLayer(caffe.Layer):
             train_index = 0
             val_index = 0
             for i in xrange(len(self._perm)):
-                if i % cfg.TRAIN.REAL_BATCH_SIZE == 0:
+                if i % cfg.TRAIN.REAL_BATCH_SIZE < cfg.TRAIN.VAL_PER_BATCH_SIZE:
                     self._perm[i] = val_inds[val_index % len(val_inds)]
                     val_index += 1
                 else:

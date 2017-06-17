@@ -13,6 +13,7 @@ import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 import global_vars
+from other import get_dataset_split_name
 
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
@@ -114,10 +115,10 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
             bg_rois_per_this_image = 0 # Do use the neg samples on training set
         elif image_set == 'val':
             bg_rois_per_image = rois_per_image - fg_rois_per_image
-            bg_rois_per_this_image = min(bg_rois_per_image * cfg.TRAIN.REAL_BATCH_SIZE, bg_inds.size)
+            bg_rois_per_this_image = min(bg_rois_per_image * cfg.TRAIN.REAL_BATCH_SIZE / cfg.TRAIN.VAL_PER_BATCH_SIZE, bg_inds.size)
     else:
         # Make sure we are using imagenet_2015_trainval1_woextra
-        assert False
+        assert False, global_vars.imdb_name
         bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
         bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
             bg_inds.size)
