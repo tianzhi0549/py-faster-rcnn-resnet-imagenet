@@ -1,0 +1,6 @@
+EXP_DIR: default
+TRAIN:
+  BG_THRESH_LO: 0.0
+TEST:
+  HAS_RPN: False
+  PROPOSAL_METHOD: "rpn"
