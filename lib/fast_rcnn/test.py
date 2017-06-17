@@ -118,6 +118,8 @@ def im_detect(net, im, boxes=None):
             background as object category 0)
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
+    if boxes.shape[0] == 0:
+        return np.zeros((0, 201), np.float32), np.zeros((0, 4 * 201), np.float32)
     blobs, im_scales = _get_blobs(im, boxes)
 
     # When mapping from image ROIs to feature map ROIs, there's some aliasing
@@ -239,6 +241,8 @@ def test_net(net, imdb, max_per_image=100, thresh=0.05, vis=False):
     _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
     if not cfg.TEST.HAS_RPN:
+        if cfg.TEST.PROPOSAL_METHOD == "rpn":
+            imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage1_iter_320000/proposals_test/"
         roidb = imdb.roidb
 
     for i in xrange(num_images):
