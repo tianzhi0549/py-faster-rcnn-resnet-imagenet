@@ -118,8 +118,6 @@ def im_detect(net, im, boxes=None):
             background as object category 0)
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
-    if boxes.shape[0] == 0:
-        return np.zeros((0, 201), np.float32), np.zeros((0, 4 * 201), np.float32)
     blobs, im_scales = _get_blobs(im, boxes)
 
     # When mapping from image ROIs to feature map ROIs, there's some aliasing
@@ -242,7 +240,8 @@ def test_net(net, imdb, max_per_image=100, thresh=0.05, vis=False):
 
     if not cfg.TEST.HAS_RPN:
         if cfg.TEST.PROPOSAL_METHOD == "rpn":
-            imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage1_iter_320000/proposals_test/"
+            # imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage2_iter_320000/proposals_test"
+            imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage1_iter_320000/proposals_test"
         roidb = imdb.roidb
 
     for i in xrange(num_images):
@@ -256,10 +255,14 @@ def test_net(net, imdb, max_per_image=100, thresh=0.05, vis=False):
             # that have the gt_classes field set to 0, which means there's no
             # ground truth.
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
+            # print "Filter {} ground-truth rois".format(len(roidb[i]['boxes']) - len(box_proposals))
 
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes = im_detect(net, im, box_proposals)
+        if box_proposals is not None and box_proposals.shape[0] == 0:
+            scores, boxes = np.zeros((0, imdb.num_classes), np.float32), np.zeros((0, 4 * imdb.num_classes), np.float32)
+        else:
+            scores, boxes = im_detect(net, im, box_proposals)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
