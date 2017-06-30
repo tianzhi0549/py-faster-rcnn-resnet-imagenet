@@ -18,6 +18,7 @@ from fast_rcnn.nms_wrapper import nms
 import cPickle
 from utils.blob import im_list_to_blob
 import os
+import multiprocessing as mp
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -224,27 +225,68 @@ def apply_nms(all_boxes, thresh):
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
     return nms_boxes
 
-def test_net(net, imdb, max_per_image=100, thresh=0.05, vis=False):
+def test_net_multi_gpus(prototxt, caffemodel, gpus, imdb, max_per_image=100, thresh=0.05, vis=False):
+    if not cfg.TEST.HAS_RPN:
+        if cfg.TEST.PROPOSAL_METHOD == "rpn":
+            # imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage1_iter_320000/proposals_test"
+            imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage2_iter_320000/proposals_test"
+        roidb = imdb.roidb
+    else:
+        roidb = None
+    
+    results_dict = mp.Manager().dict()
+    procs=[]
+    for rank in range(len(gpus)):
+        p = mp.Process(target=test_net,
+                    args=(prototxt, caffemodel, imdb, gpus, rank,
+                        results_dict, roidb, max_per_image, thresh, vis))
+        p.daemon = True
+        p.start()
+        procs.append(p)
+    for p in procs:
+        p.join()
+    
+    print "Merge boxes from multiple cards"
+    all_boxes = [[[] for _ in xrange(imdb.num_images)]
+                 for _ in xrange(imdb.num_classes)]
+    assert len(results_dict) == len(gpus)
+    for rank, (boxes, output_dir) in results_dict.items():
+        for c in xrange(imdb.num_classes):
+            for i, box in enumerate(boxes[c]):
+                all_boxes[c][rank + i * len(gpus)] = box
+
+    det_file = os.path.join(output_dir, 'detections.pkl')
+    with open(det_file, 'wb') as f:
+        cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+    # det_file = os.path.join(output_dir, 'detections.pkl')
+    # with open(det_file) as f:
+    #     all_boxes = cPickle.load(f)
+    print 'Evaluating detections'
+    imdb.evaluate_detections(all_boxes, output_dir)
+
+def test_net(prototxt, caffemodel, imdb, gpus, rank, results_dict, roidb=None, 
+    max_per_image=100, thresh=0.05, vis=False):
     """Test a Fast R-CNN network on an image database."""
+    cfg.GPU_ID = gpus[rank]
+    caffe.set_mode_gpu()
+    caffe.set_device(cfg.GPU_ID)
+    
+    net = caffe.Net(prototxt, caffemodel, caffe.TEST)
+    net.name = os.path.splitext(os.path.basename(caffemodel))[0]
+    output_dir = get_output_dir(imdb, net)
+
     num_images = len(imdb.image_index)
     # all detections are collected into:
     #    all_boxes[cls][image] = N x 5 array of detections in
     #    (x1, y1, x2, y2, score)
-    all_boxes = [[[] for _ in xrange(num_images)]
+    all_boxes = [[[] for _ in xrange(rank, num_images, len(gpus))]
                  for _ in xrange(imdb.num_classes)]
-
-    output_dir = get_output_dir(imdb, net)
 
     # timers
     _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
-    if not cfg.TEST.HAS_RPN:
-        if cfg.TEST.PROPOSAL_METHOD == "rpn":
-            # imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage2_iter_320000/proposals_test"
-            imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage1_iter_320000/proposals_test"
-        roidb = imdb.roidb
-
-    for i in xrange(num_images):
+    result_index = 0
+    for i in range(rank, num_images, len(gpus)):
         # filter out any ground truth boxes
         if cfg.TEST.HAS_RPN:
             box_proposals = None
@@ -255,7 +297,7 @@ def test_net(net, imdb, max_per_image=100, thresh=0.05, vis=False):
             # that have the gt_classes field set to 0, which means there's no
             # ground truth.
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
-            # print "Filter {} ground-truth rois".format(len(roidb[i]['boxes']) - len(box_proposals))
+            print i, np.sum(box_proposals), "Filter {} ground-truth rois".format(len(roidb[i]['boxes']) - len(box_proposals))
 
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
@@ -277,28 +319,21 @@ def test_net(net, imdb, max_per_image=100, thresh=0.05, vis=False):
             cls_dets = cls_dets[keep, :]
             if vis:
                 vis_detections(im, imdb.classes[j], cls_dets)
-            all_boxes[j][i] = cls_dets
+            all_boxes[j][result_index] = cls_dets
 
         # Limit to max_per_image detections *over all classes*
         if max_per_image > 0:
-            image_scores = np.hstack([all_boxes[j][i][:, -1]
+            image_scores = np.hstack([all_boxes[j][result_index][:, -1]
                                       for j in xrange(1, imdb.num_classes)])
             if len(image_scores) > max_per_image:
                 image_thresh = np.sort(image_scores)[-max_per_image]
                 for j in xrange(1, imdb.num_classes):
-                    keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
-                    all_boxes[j][i] = all_boxes[j][i][keep, :]
+                    keep = np.where(all_boxes[j][result_index][:, -1] >= image_thresh)[0]
+                    all_boxes[j][result_index] = all_boxes[j][result_index][keep, :]
         _t['misc'].toc()
-
         print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
               .format(i + 1, num_images, _t['im_detect'].average_time,
                       _t['misc'].average_time)
+        result_index += 1
 
-    det_file = os.path.join(output_dir, 'detections.pkl')
-    with open(det_file, 'wb') as f:
-        cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
-    # det_file = os.path.join(output_dir, 'detections.pkl')
-    # with open(det_file) as f:
-    #     all_boxes = cPickle.load(f)
-    print 'Evaluating detections'
-    imdb.evaluate_detections(all_boxes, output_dir)
+    results_dict[rank] = (all_boxes, output_dir)

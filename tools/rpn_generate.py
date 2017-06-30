@@ -19,6 +19,8 @@ import caffe
 import argparse
 import pprint
 import time, os, sys
+import multiprocessing as mp
+from easydict import EasyDict
 
 def parse_args():
     """
@@ -52,6 +54,13 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def rpn_generate_single_gpu(prototxt, caffemodel, imdb, rank, gpus, output_dir):
+    cfg.GPU_ID = gpus[rank]
+    caffe.set_mode_gpu()
+    caffe.set_device(cfg.GPU_ID)
+    net = caffe.Net(prototxt, caffemodel, caffe.TEST)
+    imdb_boxes = imdb_proposals(net, imdb, rank, len(gpus), output_dir)
+
 if __name__ == '__main__':
     args = parse_args()
 
@@ -62,8 +71,6 @@ if __name__ == '__main__':
         cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
-
-    cfg.GPU_ID = args.gpu_id
 
     # RPN test settings
     cfg.TEST.RPN_PRE_NMS_TOP_N = -1
@@ -76,13 +83,22 @@ if __name__ == '__main__':
         print('Waiting for {} to exist...'.format(args.caffemodel))
         time.sleep(10)
 
-    caffe.set_mode_gpu()
-    caffe.set_device(args.gpu_id)
-    net = caffe.Net(args.prototxt, args.caffemodel, caffe.TEST)
-    net.name = os.path.splitext(os.path.basename(args.caffemodel))[0]
+    fake_net = EasyDict()
+    fake_net.name = os.path.splitext(os.path.basename(args.caffemodel))[0]
+    gpus = [0, 1, 2, 3]
 
     imdb = get_imdb(args.imdb_name)
-    output_dir = os.path.join(get_output_dir(imdb, net), "proposals_test")
+    output_dir = get_output_dir(imdb, fake_net)
+    output_dir = os.path.join(output_dir, "proposals_test")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    imdb_boxes = imdb_proposals(net, imdb, 0, 1, output_dir)
+
+    procs=[]
+    for rank in range(len(gpus)):
+        p = mp.Process(target=rpn_generate_single_gpu,
+                    args=(args.prototxt, args.caffemodel, imdb, rank, gpus, output_dir))
+        p.daemon = True
+        p.start()
+        procs.append(p)
+    for p in procs:
+        p.join()
