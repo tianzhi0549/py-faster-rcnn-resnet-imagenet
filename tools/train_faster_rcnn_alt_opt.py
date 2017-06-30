@@ -102,6 +102,8 @@ def train_rpn(gpus, queue=None, imdb_name=None, init_model=None, solver=None,
     cfg.TRAIN.BBOX_REG = False  # applies only to Fast R-CNN bbox regression
     cfg.TRAIN.PROPOSAL_METHOD = 'gt'
     cfg.TRAIN.IMS_PER_BATCH = 1
+    cfg.TRAIN.REAL_BATCH_SIZE = 8
+    cfg.TRAIN.VAL_PER_BATCH_SIZE = 1
     np.random.seed(cfg.RNG_SEED)
     print 'Init model: {}'.format(init_model)
     print('Using config:')
@@ -115,8 +117,8 @@ def train_rpn(gpus, queue=None, imdb_name=None, init_model=None, solver=None,
                             pretrained_model=init_model,
                             max_iters=max_iters)
     # Cleanup all but the final model
-    for i in model_paths[:-1]:
-        os.remove(i)
+    # for i in model_paths[:-1]:
+    #     os.remove(i)
     rpn_model_path = model_paths[-1]
     # Send final model path through the multiprocessing queue
     queue.put({'model_path': rpn_model_path})
@@ -179,6 +181,9 @@ def train_fast_rcnn(gpus, queue=None, imdb_name=None, init_model=None, solver=No
     cfg.TRAIN.HAS_RPN = False           # not generating prosals on-the-fly
     cfg.TRAIN.PROPOSAL_METHOD = 'rpn'   # use pre-computed RPN proposals instead
     cfg.TRAIN.IMS_PER_BATCH = 1
+    cfg.TRAIN.BATCH_SIZE = 128 * 8
+    cfg.TRAIN.REAL_BATCH_SIZE = 16
+    cfg.TRAIN.VAL_PER_BATCH_SIZE = 4
     np.random.seed(cfg.RNG_SEED)
     print 'Init model: {}'.format(init_model)
     print 'RPN proposals: {}'.format(rpn_file)
@@ -192,8 +197,8 @@ def train_fast_rcnn(gpus, queue=None, imdb_name=None, init_model=None, solver=No
     # model_paths = train_net(solver, roidb, output_dir,
     #                         pretrained_model=init_model,
     #                         max_iters=max_iters)
-    train_net_multi_gpus(solver, roidb, output_dir, gpus,
-          pretrained_model=args.pretrained_model,
+    model_paths = train_net_multi_gpus(solver, roidb, output_dir, gpus,
+          pretrained_model=init_model,
           max_iters=max_iters)
 
     # Cleanup all but the final model
@@ -214,6 +219,7 @@ if __name__ == '__main__':
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
     cfg.MODELS_DIR=args.models_dir
+    global_vars.imdb_name = args.imdb_name
     # --------------------------------------------------------------------------
     # Pycaffe doesn't reliably free GPU memory when instantiated nets are
     # discarded (e.g. "del net" in Python code). To work around this issue, each
@@ -225,27 +231,26 @@ if __name__ == '__main__':
     mp_queue = mp.Queue()
     # solves, iters, etc. for each training stage
     solvers, max_iters, rpn_test_prototxt = get_solvers(args.net_name)
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 1 RPN, init from ImageNet model'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 1 RPN, init from ImageNet model'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    global_vars.imdb_name = args.imdb_name
-    cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
-    mp_kwargs = dict(
-            gpus=args.gpu,
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            init_model=args.pretrained_model,
-            solver=solvers[0],
-            max_iters=max_iters[0],
-            cfg=cfg)
-    p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
-    p.start()
-    rpn_stage1_out = mp_queue.get()
-    p.join()
+    # cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
+    # mp_kwargs = dict(
+    #         gpus=args.gpu,
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         init_model=args.pretrained_model,
+    #         solver=solvers[0],
+    #         max_iters=max_iters[0],
+    #         cfg=cfg)
+    # p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
+    # p.start()
+    # rpn_stage1_out = mp_queue.get()
+    # p.join()
     
     # rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/voc_2007_trainval/resnet-101_rpn_stage1_iter_80000.caffemodel" 
-    rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_rpn_stage1_iter_320000.caffemodel" 
+    rpn_model_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_rpn_stage1_iter_320000.caffemodel"
     rpn_stage1_out={'model_path': rpn_model_path}
     # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     # print 'Stage 1 RPN, generate proposals'
@@ -263,8 +268,8 @@ if __name__ == '__main__':
     # rpn_stage1_out['proposal_path'] = mp_queue.get()['proposal_path']
     # p.join()
     
-    # proposal_path="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/proposals"
-    # rpn_stage1_out['proposal_path']=proposal_path
+    proposal_path = "output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/proposals/"
+    rpn_stage1_out['proposal_path'] = proposal_path
     # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     # print 'Stage 1 Fast R-CNN using RPN proposals, init from ImageNet model'
     # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
@@ -286,23 +291,26 @@ if __name__ == '__main__':
 
     fast_rcnn_stage1_out = {}
     fast_rcnn_stage1_out["model_path"] = "/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_fast_rcnn_stage1_iter_320000.caffemodel"
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 2 RPN, init from stage 1 Fast R-CNN model'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 2 RPN, init from stage 1 Fast R-CNN model'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    cfg.TRAIN.SNAPSHOT_INFIX = 'stage2'
-    mp_kwargs = dict(
-            gpus=args.gpu,
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            init_model=str(fast_rcnn_stage1_out['model_path']),
-            solver=solvers[2],
-            max_iters=max_iters[2],
-            cfg=cfg)
-    p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
-    p.start()
-    rpn_stage2_out = mp_queue.get()
-    p.join()
+    # cfg.TRAIN.SNAPSHOT_INFIX = 'stage2'
+    # mp_kwargs = dict(
+    #         gpus=args.gpu,
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         init_model=str(fast_rcnn_stage1_out['model_path']),
+    #         solver=solvers[2],
+    #         max_iters=max_iters[2],
+    #         cfg=cfg)
+    # p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
+    # p.start()
+    # rpn_stage2_out = mp_queue.get()
+    # p.join()
+
+    rpn_stage2_out = {}
+    rpn_stage2_out["model_path"] = "/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/models_bp4/resnet-101_rpn_stage2_iter_320000.caffemodel"
 
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 2 RPN, generate proposals'
@@ -319,6 +327,8 @@ if __name__ == '__main__':
     p.start()
     rpn_stage2_out['proposal_path'] = mp_queue.get()['proposal_path']
     p.join()
+
+    rpn_stage2_out['proposal_path'] = "output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/proposals/"
 
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 2 Fast R-CNN, init from stage 2 RPN R-CNN model'
@@ -339,7 +349,7 @@ if __name__ == '__main__':
     fast_rcnn_stage2_out = mp_queue.get()
     p.join()
 
-    # Create final model (just a copy of the last stage)
+    # # Create final model (just a copy of the last stage)
     final_path = os.path.join(
             os.path.dirname(fast_rcnn_stage2_out['model_path']),
             args.net_name + '_faster_rcnn_final.caffemodel')
