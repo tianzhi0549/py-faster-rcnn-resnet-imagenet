@@ -8,7 +8,7 @@ So far, it achieves mAP 52.2% (vs. 60.5% in the paper) on val2 of ImageNet 2015 
   * Add ImageNet Detection imdb and roidb
   * Use ResNet-101
   * Multi-gpus training and testing
-  * Fix some problems when traning Faster RCNN over ImageNet
+  * Fix some problems when training Faster RCNN over ImageNet
   
 ## What has NOT been done
   - Box refinement
