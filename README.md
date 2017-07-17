@@ -4,6 +4,8 @@ Based on Faster RCNN, the repository aims to reproduce the ImageNet Detection re
 
 So far, it achieves mAP 52.2% (vs. 60.5% in the paper) on val2 of ImageNet 2015 Detection dataset *without* the use of Box refinement, Global context and Multi-scale testing.
 
+If you have any questions about this code, please create an issue.
+
 ## What has been done
   * Add ImageNet Detection imdb and roidb
   * Use ResNet-101
