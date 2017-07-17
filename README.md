@@ -45,5 +45,5 @@ Once it finishes, you could see the final mAP over val2.
   ```
 
 * Run `cp trainval1_woextra.txt val2.txt data/ImageNet2015/ImageSets/DET`
-* Download pretranied models of ResNet-101 here
+* Download the pretranied model of ResNet-101 [here](https://onedrive.live.com/?authkey=%21AAFW2-FVoxeVRck&id=4006CBB8476FF777%2117887&cid=4006CBB8476FF777), and populate it into `data/imagenet_models` with name `ResNet-101.caffemodel`
 * Run `experiments/scripts/faster_rcnn_alt_opt.sh 0,1,2,3,4,5,6,7 ResNet-101 imagenet` to train. `0,1,2,3` is GPU ids. Please replace it if you use other GPUs.
