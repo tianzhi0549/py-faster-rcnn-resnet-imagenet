@@ -27,8 +27,8 @@ def parse_args():
     Parse input arguments
     """
     parser = argparse.ArgumentParser(description='Test a Fast R-CNN network')
-    parser.add_argument('--gpu', dest='gpu_id', help='GPU id to use',
-                        default=0, type=int)
+    parser.add_argument('--gpu',  type=int, nargs='+', 
+                        default=[0], help="List of device ids.")
     parser.add_argument('--def', dest='prototxt',
                         help='prototxt file defining the network',
                         default=None, type=str)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     fake_net = EasyDict()
     fake_net.name = os.path.splitext(os.path.basename(args.caffemodel))[0]
-    gpus = [0, 1, 2, 3]
+    gpus = args.gpu
 
     imdb = get_imdb(args.imdb_name)
     output_dir = get_output_dir(imdb, fake_net)

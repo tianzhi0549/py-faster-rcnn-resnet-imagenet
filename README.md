@@ -35,5 +35,12 @@ Once it finishes, you could see the final mAP over val2.
 
 **Please note:** because the improvement of stage 3 and stage 4 is minior, only the first two stages are trained. With 8 Titanx GPU cards, it takes about fours days to train.
 
+* Download ImageNet Detection 2015 datasets, and unzip it into directory `data`. It should have this basic structure
+    ImageNet2015/Annotations
+    ImageNet2015/Data
+    ImageNet2015/ImageSets
+    # others...
+
+* Run `cp trainval1_woextra.txt val2.txt data/ImageNet2015/ImageSets/DET`
 * Download pretranied models of ResNet-101 here
 * Run `experiments/scripts/faster_rcnn_alt_opt.sh 0,1,2,3,4,5,6,7 ResNet-101 imagenet` to train. `0,1,2,3` is GPU ids. Please replace it if you use other GPUs.

@@ -225,11 +225,10 @@ def apply_nms(all_boxes, thresh):
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
     return nms_boxes
 
-def test_net_multi_gpus(prototxt, caffemodel, gpus, imdb, max_per_image=100, thresh=0.05, vis=False):
+def test_net_multi_gpus(prototxt, caffemodel, gpus, imdb, max_per_image=100, thresh=0.05, vis=False, rpn_file = None):
     if not cfg.TEST.HAS_RPN:
         if cfg.TEST.PROPOSAL_METHOD == "rpn":
-            # imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage1_iter_320000/proposals_test"
-            imdb.config["rpn_file"] = "output/default/imagenet_2015_val2/resnet-101_rpn_stage2_iter_320000/proposals_test"
+            imdb.config["rpn_file"] = rpn_file
         roidb = imdb.roidb
     else:
         roidb = None
@@ -297,7 +296,7 @@ def test_net(prototxt, caffemodel, imdb, gpus, rank, results_dict, roidb=None,
             # that have the gt_classes field set to 0, which means there's no
             # ground truth.
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
-            print i, np.sum(box_proposals), "Filter {} ground-truth rois".format(len(roidb[i]['boxes']) - len(box_proposals))
+            # print i, np.sum(box_proposals), "Filter {} ground-truth rois".format(len(roidb[i]['boxes']) - len(box_proposals))
 
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()

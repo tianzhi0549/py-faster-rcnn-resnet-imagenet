@@ -23,7 +23,7 @@ def parse_args():
     Parse input arguments
     """
     parser = argparse.ArgumentParser(description='Test a Fast R-CNN network')
-    parser.add_argument('--gpu', dest='gpu_id', type=int, nargs='+', 
+    parser.add_argument('--gpu', type=int, nargs='+', 
                         default=[0], help="List of device ids.")
     parser.add_argument('--def', dest='prototxt',
                         help='prototxt file defining the network',
@@ -49,6 +49,8 @@ def parse_args():
     parser.add_argument('--num_dets', dest='max_per_image',
                         help='max number of detections per image',
                         default=100, type=int)
+    parser.add_argument('--rpn_file', help='proposals location',
+                        default=100, type=str)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -80,4 +82,4 @@ if __name__ == '__main__':
     if not cfg.TEST.HAS_RPN:
         imdb.set_proposal_method(cfg.TEST.PROPOSAL_METHOD)
 
-    test_net_multi_gpus(args.prototxt, args.caffemodel, [0, 1, 2, 3], imdb, max_per_image=args.max_per_image, vis=args.vis)
+    test_net_multi_gpus(args.prototxt, args.caffemodel, args.gpu, imdb, max_per_image=args.max_per_image, vis=args.vis, rpn_file=args.rpn_file)
