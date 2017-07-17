@@ -19,7 +19,7 @@ If you are interested in these, please feel free to submit PRs.
 
 ## How to use this code
 
-**If you find any directory in the following steps does not exist, please create it by yourself.**
+*If you find any directory in the following steps does not exist, please create it by yourself.*
 
 ### Test with trained models
 * Clone this repository and set up the environment as described in the original [README.md](README_Faster_RCNN.md) of Faster RCNN
