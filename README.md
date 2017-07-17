@@ -18,8 +18,8 @@ So far, it achieves mAP 52.7% (vs. 60.5% in the paper) on val2 of ImageNet Detec
 If you are interested in these, please feel free to submit PRs.
 
 ## How to use this code
-* Clone this repository and set up the environment as described in the original README.md of Faster RCNN
-* Download the model I trained here.
+* Clone this repository and set up the environment as described in the original [README.md](README_Faster_RCNN.md) of Faster RCNN
+* Download the models I trained. [resnet-101_rpn_stage1_iter_320000.caffemodel](https://drive.google.com/open?id=0B7c5Ix-XO7hqNXRjSUNta0wxcmc) [resnet-101_fast_rcnn_stage1_iter_320000.caffemodel](https://drive.google.com/open?id=0B7c5Ix-XO7hqVkRyMXdvQ29sNUE)
 * Generate RPN proposals
   
   `python tools/rpn_generate.py --def models/imagenet/ResNet-101/faster_rcnn_alt_opt/rpn_test.pt --net output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_rpn_stage1_iter_320000.caffemodel --imdb imagenet_2015_val2 --gpu 0 1 2 3`
