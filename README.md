@@ -18,6 +18,10 @@ So far, it achieves mAP 52.2% (vs. 60.5% in the paper) on val2 of ImageNet 2015 
 If you are interested in these, please feel free to submit PRs.
 
 ## How to use this code
+
+**If you find any directory in the following steps does not exist, please create it by yourself.**
+
+### Test with trained models
 * Clone this repository and set up the environment as described in the original [README.md](README_Faster_RCNN.md) of Faster RCNN
 * Download the models I trained. Populate them into `output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra`.
 
@@ -36,7 +40,7 @@ If you are interested in these, please feel free to submit PRs.
 
 Once it finishes, you could see the final mAP over val2.
 
-## How to train it by yourself
+### Train it by yourself
 **Hardware required:** 4 or 8 GPU cards are required to train the model because the batch sizes used in the original paper are 8 for RPN and 16 for Fast RCNN.
 
 **Please note:** because the improvement of stage 3 and 4 is minior, only the first two stages are trained. With 8 Titanx GPU cards, it takes about four days to train.
