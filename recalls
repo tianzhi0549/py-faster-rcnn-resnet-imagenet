@@ -76,3 +76,6 @@ Recall@0.6: 0.807
 Recall@0.7: 0.704
 Recall@0.8: 0.428
 Recall@0.9: 0.062
+
+# models_bp5
+# Following models_bp4, but with init model bug fixed

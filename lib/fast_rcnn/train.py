@@ -12,7 +12,7 @@ from fast_rcnn.config import cfg
 import roi_data_layer.roidb as rdl_roidb
 from utils.timer import Timer
 import numpy as np
-import os, time
+import os, time, sys
 from multiprocessing import Process, Queue
 
 from caffe.proto import caffe_pb2
@@ -52,7 +52,10 @@ class SolverWrapper(object):
         nccl = caffe.NCCL(self.solver, nccl_uid)
         nccl.bcast()
         self.solver.add_callback(nccl)
-        self.nccl=nccl # hold the reference to nccl
+        assert self.solver.param.layer_wise_reduce
+        if self.solver.param.layer_wise_reduce:
+            self.solver.net.after_backward(nccl)
+        self.nccl = nccl # hold the reference to nccl
 
         self.solver_param = caffe_pb2.SolverParameter()
         with open(solver_prototxt, 'rt') as f:
@@ -109,8 +112,9 @@ class SolverWrapper(object):
             timer.tic()
             self.solver.step(1)
             timer.toc()
+            
             if self.solver.iter % (10 * self.solver_param.display) == 0:
-                print 'speed: {:.3f}s / iter'.format(timer.average_time)
+                sys.stderr.write('rank: {} iteration: {} speed: {:.3f}s / iter\n'.format(self.rank, self.solver.iter, timer.average_time))
 
             if self.rank == 0 and self.solver.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = self.solver.iter

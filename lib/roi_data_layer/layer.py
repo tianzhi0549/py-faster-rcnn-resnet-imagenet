@@ -41,7 +41,7 @@ class RoIDataLayer(caffe.Layer):
         else:
             self._perm = np.random.permutation(np.arange(len(self._roidb)))
         
-        if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+        if cfg.TRAIN.NO_POS_SAMPLES_ON_TRAIN and global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
             train_inds = []
             val_inds = []
             for index in self._perm:

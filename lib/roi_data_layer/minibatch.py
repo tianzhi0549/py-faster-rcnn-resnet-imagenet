@@ -107,7 +107,9 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
 
-    if global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+    if cfg.TRAIN.NO_POS_SAMPLES_ON_TRAIN and global_vars.imdb_name == "imagenet_2015_trainval1_woextra":
+        # Make sure we do not use this branch
+        assert False
         assert len(global_vars.image_files) == 1
         image_set = get_dataset_split_name(global_vars.image_files[0])
         assert image_set == 'train' or image_set == 'val', image_set
@@ -117,8 +119,6 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
             bg_rois_per_image = rois_per_image - fg_rois_per_image
             bg_rois_per_this_image = min(bg_rois_per_image * cfg.TRAIN.REAL_BATCH_SIZE / cfg.TRAIN.VAL_PER_BATCH_SIZE, bg_inds.size)
     else:
-        # Make sure we are using imagenet_2015_trainval1_woextra
-        assert False, global_vars.imdb_name
         bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
         bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
             bg_inds.size)

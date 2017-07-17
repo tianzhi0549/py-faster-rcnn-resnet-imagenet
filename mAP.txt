@@ -20,3 +20,7 @@ Proposals models_bp2 stage1:
 
 	models_bp/resnet-101_fast_rcnn_stage1_iter_320000.caffemodel
 	Mean AP = 0.4437
+
+fixed multi-gpus bugs:
+stage2 proposals, stage1 fast-rcnn 
+	Mean AP = 0.529

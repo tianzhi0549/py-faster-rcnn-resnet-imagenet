@@ -56,17 +56,17 @@ time ./tools/train_faster_rcnn_alt_opt.py --gpu ${GPU_ID} \
   --cfg experiments/cfgs/faster_rcnn_alt_opt.yml \
   ${EXTRA_ARGS}
 
-set +x
-NET_FINAL=`grep "Final model:" ${LOG} | awk '{print $3}'`
-set -x
+# exit(0)
+
+# set +x
+# NET_FINAL=`grep "Final model:" ${LOG} | awk '{print $3}'`
+# set -x
 
 # NET_FINAL="/media/sdb/zhitian/code/py-faster-rcnn-resnet/output/faster_rcnn_alt_opt/imagenet_2015_trainval1_woextra/resnet-101_fast_rcnn_stage2_iter_320000.caffemodel"
 
-time ./tools/test_net.py --gpu ${GPU_ID} \
-  --def models/${PT_DIR}/${NET}/faster_rcnn_alt_opt/faster_rcnn_test.pt \
-  --net ${NET_FINAL} \
-  --imdb ${TEST_IMDB} \
-  --cfg experiments/cfgs/faster_rcnn_alt_opt.yml \
-  --vis 1 \
-  ${EXTRA_ARGS}
-
+# time ./tools/test_net.py --gpu ${GPU_ID} \
+#   --def models/${PT_DIR}/${NET}/faster_rcnn_alt_opt/faster_rcnn_test.pt \
+#   --net ${NET_FINAL} \
+#   --imdb ${TEST_IMDB} \
+#   --cfg experiments/cfgs/faster_rcnn_alt_opt.yml \
+#   ${EXTRA_ARGS}

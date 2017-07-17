@@ -14,4 +14,5 @@ weight_decay: 0.0005
 snapshot: 0
 # We still use the snapshot prefix, though
 snapshot_prefix: "resnet-101_fast_rcnn"
-iter_size: 2
+iter_size: 4
+# debug_info: true
